@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>For You ♡</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Lato:wght@300;400&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
     --rose: #c9506a;
@@ -121,7 +122,133 @@
   .login-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(201,80,106,0.38); }
   .login-error { color: var(--rose); font-size: 0.82rem; margin-top: 12px; min-height: 18px; font-style: italic; }
 
-  /* ─── MAIN ─── */
+  .forgot-link {
+    display: block; margin-top: 14px;
+    font-family: 'Cormorant Garamond', serif; font-size: 0.9rem;
+    color: var(--muted); font-style: italic; text-decoration: none;
+    transition: color 0.2s; cursor: pointer;
+  }
+  .forgot-link:hover { color: var(--rose); text-decoration: underline; }
+
+  /* ─── RESET PASSWORD MODAL ─── */
+  #reset-modal {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(28,10,14,0.75); backdrop-filter: blur(8px);
+    display: none; align-items: center; justify-content: center; padding: 24px;
+  }
+  #reset-modal.open { display: flex; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+
+  .reset-box {
+    background: rgba(255,255,255,0.95);
+    border: 1px solid rgba(201,80,106,0.2);
+    border-radius: 24px;
+    padding: 40px 36px;
+    width: 420px; max-width: 95vw;
+    text-align: center;
+    box-shadow: 0 32px 80px rgba(201,80,106,0.2);
+    animation: popUp 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    position: relative;
+  }
+  @keyframes popUp {
+    from { opacity: 0; transform: scale(0.8); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+
+  .reset-close {
+    position: absolute; top: 16px; right: 16px;
+    background: none; border: none; font-size: 1.5rem;
+    color: var(--muted); cursor: pointer;
+    transition: color 0.2s, transform 0.2s;
+    line-height: 1;
+  }
+  .reset-close:hover { color: var(--rose); transform: rotate(90deg); }
+
+  .reset-icon { font-size: 2.5rem; margin-bottom: 14px; display: block; }
+
+  .reset-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem; color: var(--rose);
+    margin-bottom: 8px; font-style: italic;
+  }
+  .reset-subtitle {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.95rem; color: var(--muted);
+    margin-bottom: 28px; font-style: italic;
+  }
+
+  .reset-field { margin-bottom: 18px; text-align: left; }
+  .reset-field label {
+    display: block; font-size: 0.72rem;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 7px;
+  }
+  .reset-field input {
+    width: 100%; padding: 12px 16px;
+    border: 1.5px solid rgba(201,80,106,0.2);
+    border-radius: 10px; background: var(--cream);
+    font-family: 'Lato', sans-serif; font-size: 0.9rem;
+    color: var(--dark); outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .reset-field input:focus {
+    border-color: var(--rose);
+    box-shadow: 0 0 0 3px rgba(201,80,106,0.1);
+  }
+
+  .reset-code-input {
+    text-align: center; font-size: 1.5rem !important;
+    letter-spacing: 0.5em; font-weight: 600;
+  }
+
+  .reset-btn {
+    width: 100%; padding: 13px;
+    background: linear-gradient(135deg, var(--rose), #e07090);
+    color: #fff; border: none; border-radius: 12px;
+    font-family: 'Lato', sans-serif; font-size: 0.85rem;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    cursor: pointer; transition: all 0.25s;
+    box-shadow: 0 4px 16px rgba(201,80,106,0.25);
+  }
+  .reset-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(201,80,106,0.35); }
+  .reset-btn:disabled {
+    opacity: 0.6; cursor: not-allowed; transform: none;
+  }
+
+  .reset-message {
+    margin-top: 14px; font-size: 0.82rem; min-height: 18px;
+    font-family: 'Cormorant Garamond', serif; font-style: italic;
+  }
+  .reset-message.error { color: var(--rose); }
+  .reset-message.success { color: #5a9e6f; }
+
+  .reset-steps { display: flex; gap: 12px; margin-bottom: 24px; justify-content: center; }
+  .reset-step {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--petal); color: var(--muted);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.85rem; font-weight: 600;
+    transition: all 0.3s;
+  }
+  .reset-step.active {
+    background: var(--rose); color: #fff;
+    box-shadow: 0 4px 12px rgba(201,80,106,0.3);
+  }
+  .reset-step.done {
+    background: #5a9e6f; color: #fff;
+  }
+
+  .spinner {
+    display: inline-block;
+    width: 18px; height: 18px;
+    border: 2px solid rgba(201,80,106,0.2);
+    border-top-color: var(--rose);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ─── (rest of the styles same as before) ─── */
   #main-site { display: none; position: relative; z-index: 1; }
 
   header {
@@ -148,7 +275,6 @@
   }
   .logout-btn:hover { color: var(--rose); }
 
-  /* ─── HERO ─── */
   .hero { text-align: center; padding: 80px 24px 56px; position: relative; }
   .hero-eyebrow {
     font-family: 'Cormorant Garamond', serif; font-size: 1rem;
@@ -175,10 +301,8 @@
     background: var(--rose); opacity: 0.3;
   }
 
-  /* ─── ADMIN PANEL ─── */
   #admin-panel { max-width: 760px; margin: 0 auto 60px; padding: 0 24px; display: none; }
 
-  /* ─── UPLOAD ZONE ─── */
   .upload-zone {
     border: 2px dashed rgba(201,80,106,0.3); border-radius: 20px;
     padding: 52px 32px; text-align: center;
@@ -204,7 +328,6 @@
   }
   .caption-input-group input:focus { border-color: var(--rose); }
 
-  /* ─── PASSWORD MANAGER ─── */
   .pw-manager {
     margin-top: 28px;
     border: 1px solid rgba(201,80,106,0.18);
@@ -270,7 +393,6 @@
     border-color: var(--rose); box-shadow: 0 0 0 3px rgba(201,80,106,0.1);
   }
 
-  /* eye toggle */
   .eye-btn {
     position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
     background: none; border: none; cursor: pointer;
@@ -306,16 +428,15 @@
     text-align: center; margin-top: 12px;
     font-family: 'Cormorant Garamond', serif; font-style: italic;
     font-size: 0.95rem; color: #5a9e6f; min-height: 20px;
-    animation: fadeIn 0.4s ease;
+    animation: fadeInMsg 0.4s ease;
   }
   .pw-error {
     text-align: center; margin-top: 12px;
     font-family: 'Cormorant Garamond', serif; font-style: italic;
     font-size: 0.95rem; color: var(--rose); min-height: 20px;
   }
-  @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+  @keyframes fadeInMsg { from{opacity:0;} to{opacity:1;} }
 
-  /* ─── GALLERY ─── */
   .gallery-section { max-width: 1200px; margin: 0 auto; padding: 0 24px 100px; }
   .gallery-section h2 {
     font-family: 'Playfair Display', serif; font-size: 1.6rem;
@@ -359,7 +480,6 @@
   }
   .del-btn:hover { background: var(--rose); }
 
-  /* ─── LIGHTBOX ─── */
   #lightbox {
     position: fixed; inset: 0; z-index: 200;
     background: rgba(28,10,14,0.92); backdrop-filter: blur(10px);
@@ -392,12 +512,10 @@
   .lb-prev{left:-64px;} .lb-next{right:-64px;}
   @media(max-width:700px){.lb-prev{left:8px;}.lb-next{right:8px;}}
 
-  /* ─── EMPTY ─── */
   .empty-gallery { text-align:center; padding:80px 24px; color:var(--muted); }
   .empty-gallery .big-icon { font-size:4rem; margin-bottom:16px; display:block; opacity:0.4; }
   .empty-gallery p { font-family:'Cormorant Garamond',serif; font-size:1.2rem; font-style:italic; }
 
-  /* ─── FOOTER ─── */
   footer {
     text-align:center; padding:32px;
     border-top:1px solid rgba(201,80,106,0.1);
@@ -406,7 +524,6 @@
     position:relative; z-index:1;
   }
 
-  /* ─── MESSAGE BANNER ─── */
   #message-banner {
     position:fixed; top:88px; left:50%; transform:translateX(-50%);
     background:linear-gradient(135deg,#fff0f3,#fff);
@@ -441,12 +558,74 @@
       <label>Password</label>
       <input type="password" id="pw-input" placeholder="Enter password..." onkeydown="if(event.key==='Enter') doLogin()"/>
     </div>
-    <button class="login-btn" onclick="doLogin()">Enter ♡</button>
+    <button class="login-btn" onclick="doLogin()">
+      <span id="login-btn-text">Enter ♡</span>
+      <span id="login-spinner" style="display:none;" class="spinner"></span>
+    </button>
     <p class="login-error" id="login-error"></p>
+    <a class="forgot-link" id="forgot-link" style="display:none;" onclick="openResetModal()">Forgot password?</a>
   </div>
 </div>
 
-<!-- MAIN -->
+<!-- RESET PASSWORD MODAL -->
+<div id="reset-modal">
+  <div class="reset-box">
+    <button class="reset-close" onclick="closeResetModal()">✕</button>
+    <span class="reset-icon">🔐</span>
+    <h2 class="reset-title" id="reset-title">Reset Password</h2>
+    <p class="reset-subtitle" id="reset-subtitle">We'll send a code to your email</p>
+
+    <div class="reset-steps">
+      <div class="reset-step active" id="step-1">1</div>
+      <div class="reset-step" id="step-2">2</div>
+      <div class="reset-step" id="step-3">3</div>
+    </div>
+
+    <!-- Step 1: Request Code -->
+    <div id="reset-step-1">
+      <div class="reset-field">
+        <label>Your Email</label>
+        <input type="email" id="reset-email" placeholder="Enter your admin email..."/>
+      </div>
+      <button class="reset-btn" onclick="sendResetCode()">
+        <span id="send-btn-text">Send Code ♡</span>
+        <span id="send-spinner" style="display:none;" class="spinner"></span>
+      </button>
+    </div>
+
+    <!-- Step 2: Enter Code -->
+    <div id="reset-step-2" style="display:none;">
+      <div class="reset-field">
+        <label>Enter 6-Digit Code</label>
+        <input type="text" id="reset-code" class="reset-code-input" placeholder="000000" maxlength="6"/>
+      </div>
+      <button class="reset-btn" onclick="verifyCode()">
+        <span id="verify-btn-text">Verify Code</span>
+        <span id="verify-spinner" style="display:none;" class="spinner"></span>
+      </button>
+    </div>
+
+    <!-- Step 3: New Password -->
+    <div id="reset-step-3" style="display:none;">
+      <div class="reset-field">
+        <label>New Password</label>
+        <input type="password" id="reset-new-pw" placeholder="Enter new password..."/>
+      </div>
+      <div class="reset-field">
+        <label>Confirm Password</label>
+        <input type="password" id="reset-confirm-pw" placeholder="Confirm new password..."/>
+      </div>
+      <button class="reset-btn" onclick="updatePassword()">
+        <span id="update-btn-text">Update Password ♡</span>
+        <span id="update-spinner" style="display:none;" class="spinner"></span>
+      </button>
+    </div>
+
+    <p class="reset-message" id="reset-message"></p>
+  </div>
+</div>
+
+<!-- MAIN SITE (same as before) -->
 <div id="main-site">
   <header>
     <div class="header-brand">For You ♡</div>
@@ -463,10 +642,7 @@
     <div class="hero-divider">♡</div>
   </section>
 
-  <!-- ADMIN PANEL -->
   <div id="admin-panel">
-
-    <!-- Upload Zone -->
     <div class="upload-zone" id="drop-zone">
       <input type="file" id="file-input" accept="image/*" multiple onchange="handleFiles(this.files)"/>
       <span class="upload-icon">📷</span>
@@ -477,7 +653,6 @@
       <input type="text" id="caption-input" placeholder="Add a caption for the next photo..."/>
     </div>
 
-    <!-- ─── PASSWORD MANAGER ─── -->
     <div class="pw-manager">
       <div class="pw-manager-header" onclick="togglePwManager()">
         <div class="pw-manager-title">
@@ -486,44 +661,37 @@
         <span class="pw-toggle-icon" id="pw-toggle-icon">▼</span>
       </div>
       <div class="pw-manager-body" id="pw-manager-body">
-
         <div class="pw-row">
-          <!-- My (Admin) Password -->
           <div class="pw-field">
             <label>My Password (Admin)</label>
             <div class="pw-field-inner">
               <input type="password" id="new-admin-pw" placeholder="New admin password..."/>
-              <button class="eye-btn" onclick="toggleEye('new-admin-pw', this)" title="Show/hide">👁</button>
+              <button class="eye-btn" onclick="toggleEye('new-admin-pw', this)">👁</button>
             </div>
             <div class="pw-current">
               Current: <span class="pw-current-val" id="show-admin-pw">••••••••</span>
-              <button class="eye-btn" style="position:static;transform:none;font-size:0.8rem;" onclick="revealCurrent('admin')" title="Reveal">👁</button>
+              <button class="eye-btn" style="position:static;transform:none;font-size:0.8rem;" onclick="revealCurrent('admin')">👁</button>
             </div>
           </div>
-
-          <!-- Her (Viewer) Password -->
           <div class="pw-field">
             <label>Her Password (Viewer)</label>
             <div class="pw-field-inner">
               <input type="password" id="new-viewer-pw" placeholder="New viewer password..."/>
-              <button class="eye-btn" onclick="toggleEye('new-viewer-pw', this)" title="Show/hide">👁</button>
+              <button class="eye-btn" onclick="toggleEye('new-viewer-pw', this)">👁</button>
             </div>
             <div class="pw-current">
               Current: <span class="pw-current-val" id="show-viewer-pw">••••••••</span>
-              <button class="eye-btn" style="position:static;transform:none;font-size:0.8rem;" onclick="revealCurrent('viewer')" title="Reveal">👁</button>
+              <button class="eye-btn" style="position:static;transform:none;font-size:0.8rem;" onclick="revealCurrent('viewer')">👁</button>
             </div>
           </div>
         </div>
-
         <button class="pw-save-btn" onclick="savePasswords()">Save Passwords ♡</button>
         <p class="pw-success" id="pw-success"></p>
         <p class="pw-error"   id="pw-error"></p>
       </div>
     </div>
+  </div>
 
-  </div><!-- /admin-panel -->
-
-  <!-- GALLERY -->
   <section class="gallery-section">
     <h2>Our Moments Together</h2>
     <div class="gallery-grid" id="gallery-grid"></div>
@@ -536,7 +704,6 @@
   <footer>Made with ♡ just for you — every picture, every memory, all yours.</footer>
 </div>
 
-<!-- LIGHTBOX -->
 <div id="lightbox" onclick="closeLightbox(event)">
   <div class="lb-inner">
     <button class="lb-close" onclick="closeLightbox()">✕</button>
@@ -550,28 +717,45 @@
 <div id="message-banner"></div>
 
 <script>
-// ══════════════════════════════════════════
-// DEFAULT PASSWORDS (first time only)
-// After saving new ones, localStorage takes over
-// ══════════════════════════════════════════
-const DEFAULT_ADMIN_PW  = 'myadmin123';
-const DEFAULT_VIEWER_PW = 'hername2025';
+// ═══════════════════════════════════════════
+// 🔥 CONFIGURATION - PASTE YOUR KEYS HERE!
+// ═══════════════════════════════════════════
+
+// SUPABASE (Required)
+const SUPABASE_URL = 'https://xfudvpspcfhycnaamtsr.supabase.co';  // ← From Supabase dashboard
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmdWR2cHNwY2ZoeWNuYWFtdHNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE0MjI3NzQsImV4cCI6MjA4Njk5ODc3NH0.8RBcjjs001B9wmbSWnZVl6o2JNlhugRq1NEGatDV-gc';      // ← From Supabase dashboard
+
+// EMAIL SERVICE - Choose ONE option below:
+
+// OPTION A: RESEND (Recommended - easier setup)
+const EMAIL_SERVICE = 'resend';
+const RESEND_API_KEY = 're_4YcoGWs6_89kmXFPgM8qWUMtQLogrtzoZ';  // ← Starts with re_...
+const FROM_EMAIL = 'onboarding@resend.dev';  // ← Use this for testing, or your verified domain
+
+// OPTION B: EMAILJS (Alternative)
+// const EMAIL_SERVICE = 'emailjs';
+// const EMAILJS_SERVICE_ID = 'YOUR_SERVICE_ID';
+// const EMAILJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';
+// const EMAILJS_PUBLIC_KEY = 'YOUR_PUBLIC_KEY';
+
+// Your admin email (where reset codes will be sent)
+const ADMIN_EMAIL = 'imrank32646@gmail.com';  // ← CHANGE THIS TO YOUR EMAIL!
+
+// ═══════════════════════════════════════════
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const LOVE_NOTE_FOR_HER   = "I made this just for you ♡ Every photo here is proof of how beautiful you are to me.";
 const HERO_SUBTITLE_ADMIN = "You're the curator of her heart — add all the beautiful moments.";
 
-// ── Load passwords from storage (or use defaults) ──
-function getAdminPw()  { return localStorage.getItem('pw_admin')  || DEFAULT_ADMIN_PW;  }
-function getViewerPw() { return localStorage.getItem('pw_viewer') || DEFAULT_VIEWER_PW; }
-
-// ── State ──
 let currentTab = 'admin';
 let photos = [];
 let lbIndex = 0;
-try { photos = JSON.parse(localStorage.getItem('gallery_photos') || '[]'); } catch(e){}
+let currentPasswords = { admin: 'myadmin123', viewer: 'hername2025', adminEmail: ADMIN_EMAIL };
+let resetCodeData = null;
 
 // ══════════════════════════════════════════
-// PETALS
+// PETALS (same as before)
 // ══════════════════════════════════════════
 const canvas = document.getElementById('petals-canvas');
 const ctx = canvas.getContext('2d');
@@ -598,6 +782,361 @@ function drawPetals() {
 resizeCanvas(); addEventListener('resize',resizeCanvas); drawPetals();
 
 // ══════════════════════════════════════════
+// DATABASE FUNCTIONS
+// ══════════════════════════════════════════
+async function loadPasswords() {
+  try {
+    const { data, error } = await supabase.from('passwords').select('*').eq('id', 'main').single();
+    if (error) throw error;
+    if (data) {
+      currentPasswords = { 
+        admin: data.admin_password, 
+        viewer: data.viewer_password,
+        adminEmail: data.admin_email || ADMIN_EMAIL
+      };
+    }
+  } catch (e) {
+    console.error('Error loading passwords:', e);
+  }
+}
+
+async function loadPhotos() {
+  try {
+    const { data, error } = await supabase.from('photos').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    photos = data || [];
+    renderGallery();
+  } catch (e) {
+    console.error('Error loading photos:', e);
+  }
+}
+
+async function addPhotoToDB(photo) {
+  try {
+    const { error } = await supabase.from('photos').insert([photo]);
+    if (error) throw error;
+    await loadPhotos();
+  } catch (e) {
+    console.error('Error adding photo:', e);
+    alert('Failed to upload photo. Please try again.');
+  }
+}
+
+async function deletePhotoFromDB(id) {
+  try {
+    const { error } = await supabase.from('photos').delete().eq('id', id);
+    if (error) throw error;
+    await loadPhotos();
+  } catch (e) {
+    console.error('Error deleting photo:', e);
+  }
+}
+
+async function updatePasswordsInDB(adminPw, viewerPw) {
+  try {
+    const updates = {};
+    if (adminPw) updates.admin_password = adminPw;
+    if (viewerPw) updates.viewer_password = viewerPw;
+    updates.updated_at = new Date().toISOString();
+
+    const { error } = await supabase.from('passwords').update(updates).eq('id', 'main');
+    if (error) throw error;
+    await loadPasswords();
+    return true;
+  } catch (e) {
+    console.error('Error updating passwords:', e);
+    return false;
+  }
+}
+
+(async () => {
+  await loadPasswords();
+  await loadPhotos();
+})();
+
+// ══════════════════════════════════════════
+// EMAIL FUNCTIONS
+// ══════════════════════════════════════════
+async function sendEmailWithCode(email, code) {
+  if (EMAIL_SERVICE === 'resend') {
+    try {
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${RESEND_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          from: FROM_EMAIL,
+          to: [email],
+          subject: 'Password Reset Code - For You ♡',
+          html: `
+            <div style="font-family: Georgia, serif; max-width: 500px; margin: 0 auto; padding: 40px; background: #fdf6f0; border-radius: 16px;">
+              <h1 style="color: #c9506a; font-size: 28px; margin-bottom: 16px; text-align: center;">Password Reset ♡</h1>
+              <p style="color: #2c1a1f; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">Your password reset code is:</p>
+              <div style="background: white; border: 2px solid #c9506a; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 24px;">
+                <span style="font-size: 32px; letter-spacing: 8px; font-weight: bold; color: #c9506a;">${code}</span>
+              </div>
+              <p style="color: #9a7b82; font-size: 14px; line-height: 1.5;">This code expires in 15 minutes. If you didn't request this, please ignore this email.</p>
+            </div>
+          `
+        })
+      });
+      return response.ok;
+    } catch (e) {
+      console.error('Resend error:', e);
+      return false;
+    }
+  } else if (EMAIL_SERVICE === 'emailjs') {
+    try {
+      const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          service_id: EMAILJS_SERVICE_ID,
+          template_id: EMAILJS_TEMPLATE_ID,
+          user_id: EMAILJS_PUBLIC_KEY,
+          template_params: {
+            to_email: email,
+            code: code
+          }
+        })
+      });
+      return response.ok;
+    } catch (e) {
+      console.error('EmailJS error:', e);
+      return false;
+    }
+  }
+  return false;
+}
+
+// ══════════════════════════════════════════
+// PASSWORD RESET FLOW
+// ══════════════════════════════════════════
+function openResetModal() {
+  document.getElementById('reset-modal').classList.add('open');
+  const emailVal = (currentPasswords && currentPasswords.adminEmail) ? currentPasswords.adminEmail : '';
+  document.getElementById('reset-email').value = emailVal !== ADMIN_EMAIL ? emailVal : '';
+}
+
+function closeResetModal() {
+  document.getElementById('reset-modal').classList.remove('open');
+  // Reset to step 1
+  document.getElementById('reset-step-1').style.display = 'block';
+  document.getElementById('reset-step-2').style.display = 'none';
+  document.getElementById('reset-step-3').style.display = 'none';
+  document.getElementById('step-1').classList.add('active');
+  document.getElementById('step-2').classList.remove('active','done');
+  document.getElementById('step-3').classList.remove('active','done');
+  document.getElementById('reset-message').textContent = '';
+  document.getElementById('reset-message').className = 'reset-message';
+  resetCodeData = null;
+}
+
+async function sendResetCode() {
+  const email = document.getElementById('reset-email').value.trim();
+  const msg = document.getElementById('reset-message');
+  const btnText = document.getElementById('send-btn-text');
+  const spinner = document.getElementById('send-spinner');
+  
+  msg.textContent = ''; msg.className = 'reset-message';
+  
+  if (!email) {
+    msg.textContent = 'Please enter your email ♡';
+    msg.classList.add('error');
+    return;
+  }
+  if (!email.includes('@')) {
+    msg.textContent = 'Please enter a valid email ♡';
+    msg.classList.add('error');
+    return;
+  }
+  
+  btnText.style.display = 'none';
+  spinner.style.display = 'inline-block';
+  
+  // Generate 6-digit code
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString(); // 15 min
+  
+  try {
+    // Save code to database
+    const { data, error } = await supabase.from('reset_codes').insert([{
+      email: email,
+      code: code,
+      expires_at: expiresAt,
+      used: false
+    }]).select().single();
+    
+    if (error) throw error;
+    
+    // Send email
+    const sent = await sendEmailWithCode(email, code);
+    
+    if (!sent) {
+      throw new Error('Failed to send email');
+    }
+    
+    resetCodeData = data;
+    
+    // Move to step 2
+    document.getElementById('reset-step-1').style.display = 'none';
+    document.getElementById('reset-step-2').style.display = 'block';
+    document.getElementById('step-1').classList.remove('active');
+    document.getElementById('step-1').classList.add('done');
+    document.getElementById('step-2').classList.add('active');
+    document.getElementById('reset-title').textContent = 'Check Your Email';
+    document.getElementById('reset-subtitle').textContent = `We sent a code to ${email}`;
+    
+    msg.textContent = '✓ Code sent! Check your email (and spam folder)';
+    msg.classList.add('success');
+    
+  } catch (e) {
+    console.error('Reset error:', e);
+    msg.textContent = 'Failed to send code. Please try again ♡';
+    msg.classList.add('error');
+  } finally {
+    btnText.style.display = 'inline';
+    spinner.style.display = 'none';
+  }
+}
+
+async function verifyCode() {
+  const code = document.getElementById('reset-code').value.trim();
+  const msg = document.getElementById('reset-message');
+  const btnText = document.getElementById('verify-btn-text');
+  const spinner = document.getElementById('verify-spinner');
+  
+  msg.textContent = ''; msg.className = 'reset-message';
+  
+  if (!code || code.length !== 6) {
+    msg.textContent = 'Please enter the 6-digit code ♡';
+    msg.classList.add('error');
+    return;
+  }
+
+  if (!resetCodeData || !resetCodeData.id) {
+    msg.textContent = 'Session expired. Please request a new code ♡';
+    msg.classList.add('error');
+    return;
+  }
+  
+  btnText.style.display = 'none';
+  spinner.style.display = 'inline-block';
+  
+  try {
+    // Check code in database
+    const { data, error } = await supabase
+      .from('reset_codes')
+      .select('*')
+      .eq('id', resetCodeData.id)
+      .eq('code', code)
+      .eq('used', false)
+      .single();
+    
+    if (error || !data) {
+      msg.textContent = 'Invalid code. Please try again ♡';
+      msg.classList.add('error');
+      btnText.style.display = 'inline';
+      spinner.style.display = 'none';
+      return;
+    }
+    
+    // Check expiry
+    if (new Date(data.expires_at) < new Date()) {
+      msg.textContent = 'Code expired. Please request a new one ♡';
+      msg.classList.add('error');
+      btnText.style.display = 'inline';
+      spinner.style.display = 'none';
+      return;
+    }
+    
+    // Move to step 3
+    document.getElementById('reset-step-2').style.display = 'none';
+    document.getElementById('reset-step-3').style.display = 'block';
+    document.getElementById('step-2').classList.remove('active');
+    document.getElementById('step-2').classList.add('done');
+    document.getElementById('step-3').classList.add('active');
+    document.getElementById('reset-title').textContent = 'Create New Password';
+    document.getElementById('reset-subtitle').textContent = 'Choose a strong password';
+    
+  } catch (e) {
+    console.error('Verify error:', e);
+    msg.textContent = 'Something went wrong. Please try again ♡';
+    msg.classList.add('error');
+  } finally {
+    btnText.style.display = 'inline';
+    spinner.style.display = 'none';
+  }
+}
+
+async function updatePassword() {
+  const newPw = document.getElementById('reset-new-pw').value.trim();
+  const confirmPw = document.getElementById('reset-confirm-pw').value.trim();
+  const msg = document.getElementById('reset-message');
+  const btnText = document.getElementById('update-btn-text');
+  const spinner = document.getElementById('update-spinner');
+  
+  msg.textContent = ''; msg.className = 'reset-message';
+  
+  if (!newPw || !confirmPw) {
+    msg.textContent = 'Please fill in both fields ♡';
+    msg.classList.add('error');
+    return;
+  }
+  if (newPw.length < 4) {
+    msg.textContent = 'Password must be at least 4 characters ♡';
+    msg.classList.add('error');
+    return;
+  }
+  if (newPw !== confirmPw) {
+    msg.textContent = 'Passwords don\'t match ♡';
+    msg.classList.add('error');
+    return;
+  }
+  
+  btnText.style.display = 'none';
+  spinner.style.display = 'inline-block';
+  
+  try {
+    // Update password in database
+    const { error: pwError } = await supabase
+      .from('passwords')
+      .update({ admin_password: newPw, updated_at: new Date().toISOString() })
+      .eq('id', 'main');
+    
+    if (pwError) throw pwError;
+    
+    // Mark code as used
+    await supabase
+      .from('reset_codes')
+      .update({ used: true })
+      .eq('id', resetCodeData.id);
+    
+    await loadPasswords();
+    
+    document.getElementById('step-3').classList.remove('active');
+    document.getElementById('step-3').classList.add('done');
+    
+    msg.textContent = '✓ Password updated successfully! You can now login ♡';
+    msg.classList.add('success');
+    
+    setTimeout(() => {
+      closeResetModal();
+    }, 2000);
+    
+  } catch (e) {
+    console.error('Update error:', e);
+    msg.textContent = 'Failed to update password. Please try again ♡';
+    msg.classList.add('error');
+  } finally {
+    btnText.style.display = 'inline';
+    spinner.style.display = 'none';
+  }
+}
+
+// ══════════════════════════════════════════
 // LOGIN
 // ══════════════════════════════════════════
 function switchTab(role) {
@@ -605,13 +1144,32 @@ function switchTab(role) {
   document.querySelectorAll('.tab-btn').forEach((b,i)=>
     b.classList.toggle('active',(role==='admin'&&i===0)||(role==='viewer'&&i===1)));
   document.getElementById('login-error').textContent='';
+  // Show forgot link only for admin
+  document.getElementById('forgot-link').style.display = role==='admin' ? 'block' : 'none';
 }
 
-function doLogin() {
+async function doLogin() {
   const pw  = document.getElementById('pw-input').value.trim();
   const err = document.getElementById('login-error');
-  if(currentTab==='admin'  && pw===getAdminPw())  { enterSite('admin');  return; }
-  if(currentTab==='viewer' && pw===getViewerPw()) { enterSite('viewer'); return; }
+  const btnText = document.getElementById('login-btn-text');
+  const spinner = document.getElementById('login-spinner');
+
+  btnText.style.display = 'none';
+  spinner.style.display = 'inline-block';
+
+  await new Promise(r => setTimeout(r, 300));
+
+  if(currentTab==='admin'  && pw===currentPasswords.admin)  { 
+    enterSite('admin'); 
+    return; 
+  }
+  if(currentTab==='viewer' && pw===currentPasswords.viewer) { 
+    enterSite('viewer'); 
+    return; 
+  }
+
+  btnText.style.display = 'inline';
+  spinner.style.display = 'none';
   err.textContent = "Hmm, that doesn't seem right ♡";
   document.getElementById('pw-input').value='';
 }
@@ -631,12 +1189,12 @@ function enterSite(role) {
     } else {
       showBanner(LOVE_NOTE_FOR_HER);
     }
-    renderGallery(); setupDragDrop();
+    setupDragDrop();
   },600);
 }
 
 // ══════════════════════════════════════════
-// PASSWORD MANAGER
+// PASSWORD MANAGER (same as before)
 // ══════════════════════════════════════════
 function togglePwManager() {
   const body = document.getElementById('pw-manager-body');
@@ -656,14 +1214,14 @@ let viewerRevealed = false;
 function revealCurrent(who) {
   if(who==='admin'){
     adminRevealed = !adminRevealed;
-    document.getElementById('show-admin-pw').textContent = adminRevealed ? getAdminPw() : '••••••••';
+    document.getElementById('show-admin-pw').textContent = adminRevealed ? currentPasswords.admin : '••••••••';
   } else {
     viewerRevealed = !viewerRevealed;
-    document.getElementById('show-viewer-pw').textContent = viewerRevealed ? getViewerPw() : '••••••••';
+    document.getElementById('show-viewer-pw').textContent = viewerRevealed ? currentPasswords.viewer : '••••••••';
   }
 }
 
-function savePasswords() {
+async function savePasswords() {
   const newAdmin  = document.getElementById('new-admin-pw').value.trim();
   const newViewer = document.getElementById('new-viewer-pw').value.trim();
   const success   = document.getElementById('pw-success');
@@ -683,10 +1241,12 @@ function savePasswords() {
     return;
   }
 
-  if(newAdmin)  localStorage.setItem('pw_admin',  newAdmin);
-  if(newViewer) localStorage.setItem('pw_viewer', newViewer);
+  const updated = await updatePasswordsInDB(newAdmin, newViewer);
+  if(!updated) {
+    error.textContent = 'Failed to update passwords. Please try again ♡';
+    return;
+  }
 
-  // Reset inputs & revealed states
   document.getElementById('new-admin-pw').value='';
   document.getElementById('new-viewer-pw').value='';
   document.getElementById('new-admin-pw').type='password';
@@ -696,16 +1256,16 @@ function savePasswords() {
   document.getElementById('show-viewer-pw').textContent='••••••••';
 
   let msg = '';
-  if(newAdmin && newViewer) msg = '✓ Both passwords updated successfully ♡';
-  else if(newAdmin)  msg = '✓ Your admin password updated ♡';
-  else               msg = '✓ Her password updated ♡';
+  if(newAdmin && newViewer) msg = '✓ Both passwords updated on all devices ♡';
+  else if(newAdmin)  msg = '✓ Your admin password updated on all devices ♡';
+  else               msg = '✓ Her password updated on all devices ♡';
 
   success.textContent = msg;
   setTimeout(()=>{ success.textContent=''; },4000);
 }
 
 // ══════════════════════════════════════════
-// DRAG & DROP
+// DRAG & DROP, PHOTOS, GALLERY (same as before)
 // ══════════════════════════════════════════
 function setupDragDrop() {
   const dz=document.getElementById('drop-zone'); if(!dz)return;
@@ -714,18 +1274,19 @@ function setupDragDrop() {
   dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dragover');handleFiles(e.dataTransfer.files);});
 }
 
-// ══════════════════════════════════════════
-// PHOTOS
-// ══════════════════════════════════════════
 function handleFiles(fileList) {
   const cap = document.getElementById('caption-input').value.trim();
   Array.from(fileList).forEach(file=>{
     if(!file.type.startsWith('image/'))return;
     const reader=new FileReader();
-    reader.onload=e=>{
-      photos.push({id:Date.now()+Math.random(),src:e.target.result,caption:cap||'',
-        date:new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})});
-      savePhotos(); renderGallery();
+    reader.onload=async (e)=>{
+      const photo = {
+        id: Date.now() + '-' + Math.random().toString(36).substr(2,9),
+        src: e.target.result,
+        caption: cap||'',
+        date: new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})
+      };
+      await addPhotoToDB(photo);
     };
     reader.readAsDataURL(file);
   });
@@ -733,12 +1294,10 @@ function handleFiles(fileList) {
   document.getElementById('file-input').value='';
 }
 
-function deletePhoto(id) { photos=photos.filter(p=>p.id!==id); savePhotos(); renderGallery(); }
-function savePhotos() { try{localStorage.setItem('gallery_photos',JSON.stringify(photos));}catch(e){} }
+async function deletePhoto(id) {
+  await deletePhotoFromDB(id);
+}
 
-// ══════════════════════════════════════════
-// GALLERY
-// ══════════════════════════════════════════
 function renderGallery() {
   const grid  = document.getElementById('gallery-grid');
   const empty = document.getElementById('empty-state');
@@ -756,7 +1315,7 @@ function renderGallery() {
         ${p.date?`<p class="photo-date">${p.date}</p>`:''}
       </div>`:''}
       ${isAdm?`<div class="photo-card-actions">
-        <button class="del-btn" onclick="event.stopPropagation();deletePhoto(${p.id})">Remove</button>
+        <button class="del-btn" onclick="event.stopPropagation();deletePhoto('${p.id}')">Remove</button>
       </div>`:''}`;
     grid.appendChild(card);
   });
@@ -766,29 +1325,26 @@ function renderGallery() {
   grid.querySelectorAll('.photo-card').forEach(c=>obs.observe(c));
 }
 
-// ══════════════════════════════════════════
-// LIGHTBOX
-// ══════════════════════════════════════════
 function openLightbox(idx) { lbIndex=idx; updateLb(); document.getElementById('lightbox').classList.add('open'); document.body.style.overflow='hidden'; }
-function closeLightbox(e) { if(e&&e.target!==document.getElementById('lightbox'))return; document.getElementById('lightbox').classList.remove('open'); document.body.style.overflow=''; }
+function closeLightbox(e) { if(e&&e.target!==document.getElementById('lightbox'))return; document.getElementById('lightbox').classList.remove('open'); document.body.style.overflow=''; lbIndex=0; }
 function updateLb() { const p=photos[lbIndex]; document.getElementById('lb-img').src=p.src; document.getElementById('lb-caption').textContent=p.caption||''; }
 function lbNavigate(d) { lbIndex=(lbIndex+d+photos.length)%photos.length; updateLb(); }
 document.addEventListener('keydown',e=>{
   if(!document.getElementById('lightbox').classList.contains('open'))return;
-  if(e.key==='ArrowLeft')lbNavigate(-1);
-  if(e.key==='ArrowRight')lbNavigate(1);
-  if(e.key==='Escape')closeLightbox();
+  if(e.key==='ArrowLeft'){e.preventDefault();lbNavigate(-1);}
+  if(e.key==='ArrowRight'){e.preventDefault();lbNavigate(1);}
+  if(e.key==='Escape'){document.getElementById('lightbox').classList.remove('open');document.body.style.overflow='';}
 });
 
-// ══════════════════════════════════════════
-// BANNER
-// ══════════════════════════════════════════
 function showBanner(msg) {
   const b=document.getElementById('message-banner');
   b.textContent=msg; b.style.display='block';
   setTimeout(()=>{b.style.transition='opacity 0.8s';b.style.opacity='0';
     setTimeout(()=>{b.style.display='none';b.style.opacity='1';},800);},5000);
 }
+
+// Show forgot link for admin on page load
+document.getElementById('forgot-link').style.display = 'block';
 </script>
 </body>
 </html>
