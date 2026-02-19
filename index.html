@@ -6,6 +6,7 @@
 <title>For You ♡</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Lato:wght@300;400&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="database.js"></script>
 <style>
   :root {
     --rose: #c9506a;
@@ -248,7 +249,7 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* ─── (rest of the styles same as before) ─── */
+  /* ─── MAIN SITE ─── */
   #main-site { display: none; position: relative; z-index: 1; }
 
   header {
@@ -450,6 +451,41 @@
     break-inside: avoid; margin-bottom: 20px; background: #fff;
     border-radius: 16px; overflow: hidden;
     box-shadow: 0 4px 20px rgba(44,26,31,0.07), 0 1px 4px rgba(44,26,31,0.05);
+    position: relative; cursor: pointer;
+    opacity: 0; transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s;
+    animation: cardIn 0.6s cubic-bezier(0.22,1,0.36,1) both;
+  }
+  .photo-card.visible { opacity: 1; }
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(30px) scale(0.95); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .photo-card:hover {
+    transform: translateY(-6px) scale(1.01);
+    box-shadow: 0 16px 48px rgba(44,26,31,0.13), 0 4px 12px rgba(201,80,106,0.1);
+  }
+  .photo-card img { width: 100%; display: block; object-fit: cover; }
+  .photo-card-footer { padding: 14px 18px 16px; }
+  .photo-caption {
+    font-family: 'Cormorant Garamond', serif; font-size: 1.05rem;
+    font-style: italic; color: var(--dark); line-height: 1.5;
+  }
+  .photo-date { font-size: 0.72rem; color: var(--muted); margin-top: 5px; letter-spacing: 0.05em; }
+  .photo-card-actions {
+    position: absolute; top: 10px; right: 10px; display: none; gap: 6px; z-index: 10;
+  }
+  .admin-mode .photo-card:hover .photo-card-actions { display: flex; }
+  .del-btn {
+    background: rgba(201,80,106,0.85); color: #fff; border: none;
+    border-radius: 8px; padding: 5px 10px; font-size: 0.75rem;
+    cursor: pointer; transition: background 0.2s;
+  }
+  .del-btn:hover { background: var(--rose); }
+
+  .photo-card {
+    break-inside: avoid; margin-bottom: 20px; background: #fff;
+    border-radius: 16px; overflow: hidden;
+    box-shadow: 0 4px 20px rgba(44,26,31,0.07), 0 1px 4px rgba(44,26,31,0.05);
     position: relative; cursor: pointer; opacity: 0;
     transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s;
     animation: cardIn 0.6s cubic-bezier(0.22,1,0.36,1) both;
@@ -538,6 +574,20 @@
     from{transform:translateX(-50%) translateY(-20px);opacity:0;}
     to{transform:translateX(-50%) translateY(0);opacity:1;}
   }
+
+  /* Admin mode delete button visibility - FORCE SHOW */
+  .admin-mode .photo-card-actions { display: flex !important; }
+  .admin-mode .photo-card-actions .del-btn { 
+    background: rgba(201,80,106,0.9) !important; 
+    color: #fff !important; 
+    border: none !important;
+    border-radius: 8px !important; 
+    padding: 8px 12px !important; 
+    font-size: 0.8rem !important;
+    cursor: pointer !important; 
+    font-weight: bold !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
+  }
 </style>
 </head>
 <body>
@@ -558,7 +608,7 @@
       <label>Password</label>
       <input type="password" id="pw-input" placeholder="Enter password..." onkeydown="if(event.key==='Enter') doLogin()"/>
     </div>
-    <button class="login-btn" onclick="doLogin()">
+    <button class="login-btn" onclick="doLogin()" disabled style="opacity: 0.6;">
       <span id="login-btn-text">Enter ♡</span>
       <span id="login-spinner" style="display:none;" class="spinner"></span>
     </button>
@@ -625,7 +675,7 @@
   </div>
 </div>
 
-<!-- MAIN SITE (same as before) -->
+<!-- MAIN SITE -->
 <div id="main-site">
   <header>
     <div class="header-brand">For You ♡</div>
@@ -718,211 +768,191 @@
 
 <script>
 // ═══════════════════════════════════════════
-// 🔥 CONFIGURATION - PASTE YOUR KEYS HERE!
+// UI CONTROLLER - Uses Database Module
 // ═══════════════════════════════════════════
-
-// SUPABASE (Required)
-const SUPABASE_URL = 'https://xfudvpspcfhycnaamtsr.supabase.co';  // ← From Supabase dashboard
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmdWR2cHNwY2ZoeWNuYWFtdHNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE0MjI3NzQsImV4cCI6MjA4Njk5ODc3NH0.8RBcjjs001B9wmbSWnZVl6o2JNlhugRq1NEGatDV-gc';      // ← From Supabase dashboard
-
-// EMAIL SERVICE - Choose ONE option below:
-
-// OPTION A: RESEND (Recommended - easier setup)
-const EMAIL_SERVICE = 'resend';
-const RESEND_API_KEY = 're_4YcoGWs6_89kmXFPgM8qWUMtQLogrtzoZ';  // ← Starts with re_...
-const FROM_EMAIL = 'onboarding@resend.dev';  // ← Use this for testing, or your verified domain
-
-// OPTION B: EMAILJS (Alternative)
-// const EMAIL_SERVICE = 'emailjs';
-// const EMAILJS_SERVICE_ID = 'YOUR_SERVICE_ID';
-// const EMAILJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';
-// const EMAILJS_PUBLIC_KEY = 'YOUR_PUBLIC_KEY';
-
-// Your admin email (where reset codes will be sent)
-const ADMIN_EMAIL = 'imrank32646@gmail.com';  // ← CHANGE THIS TO YOUR EMAIL!
-
-// ═══════════════════════════════════════════
-
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const LOVE_NOTE_FOR_HER   = "I made this just for you ♡ Every photo here is proof of how beautiful you are to me.";
 const HERO_SUBTITLE_ADMIN = "You're the curator of her heart — add all the beautiful moments.";
 
 let currentTab = 'admin';
-let photos = [];
 let lbIndex = 0;
-let currentPasswords = { admin: 'myadmin123', viewer: 'hername2025', adminEmail: ADMIN_EMAIL };
 let resetCodeData = null;
+let adminRevealed = false;
+let viewerRevealed = false;
+
+// Wait for database to initialize
+function waitForDatabase() {
+  console.log('Checking database...', {
+    hasDatabase: !!window.Database,
+    hasPasswords: window.Database ? !!window.Database.getCurrentPasswords().admin : false
+  });
+  
+  if (window.Database && window.Database.getCurrentPasswords().admin) {
+    console.log('✅ UI ready - Database connected');
+    console.log('Passwords loaded:', window.Database.getCurrentPasswords());
+    // Enable login button when database is ready
+    const loginBtn = document.querySelector('.login-btn');
+    if (loginBtn) {
+      loginBtn.disabled = false;
+      loginBtn.style.opacity = '1';
+    }
+  } else {
+    console.log('⏳ Waiting for database...');
+    setTimeout(waitForDatabase, 1000);
+  }
+}
+
+// Start waiting for database
+window.addEventListener('load', () => {
+  setTimeout(waitForDatabase, 2000);
+});
 
 // ══════════════════════════════════════════
-// PETALS (same as before)
+// PETALS ANIMATION
 // ══════════════════════════════════════════
 const canvas = document.getElementById('petals-canvas');
 const ctx = canvas.getContext('2d');
 let petals = [];
-function resizeCanvas() { canvas.width = innerWidth; canvas.height = innerHeight; }
-function createPetal() {
-  return { x: Math.random()*canvas.width, y: -20, size: 6+Math.random()*10,
-    speedY: 0.6+Math.random()*1.2, speedX: (Math.random()-0.5)*0.6,
-    rotation: Math.random()*Math.PI*2, rotSpeed: (Math.random()-0.5)*0.04,
-    opacity: 0.3+Math.random()*0.5, hue: 340+Math.random()*20 };
+
+function resizeCanvas() { 
+  canvas.width = innerWidth; 
+  canvas.height = innerHeight; 
 }
+
+function createPetal() {
+  return { 
+    x: Math.random()*canvas.width, 
+    y: -20, 
+    size: 6+Math.random()*10,
+    speedY: 0.6+Math.random()*1.2, 
+    speedX: (Math.random()-0.5)*0.6,
+    rotation: Math.random()*Math.PI*2, 
+    rotSpeed: (Math.random()-0.5)*0.04,
+    opacity: 0.3+Math.random()*0.5, 
+    hue: 340+Math.random()*20 
+  };
+}
+
 function drawPetals() {
   ctx.clearRect(0,0,canvas.width,canvas.height);
   if(petals.length<18) petals.push(createPetal());
   petals = petals.filter(p=>p.y<canvas.height+30);
   petals.forEach(p=>{
-    p.y+=p.speedY; p.x+=p.speedX+Math.sin(p.y*0.015)*0.5; p.rotation+=p.rotSpeed;
-    ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rotation);
-    ctx.globalAlpha=p.opacity; ctx.fillStyle=`hsl(${p.hue},70%,78%)`;
-    ctx.beginPath(); ctx.ellipse(0,0,p.size*0.55,p.size,0,0,Math.PI*2); ctx.fill(); ctx.restore();
+    p.y+=p.speedY; 
+    p.x+=p.speedX+Math.sin(p.y*0.015)*0.5; 
+    p.rotation+=p.rotSpeed;
+    ctx.save(); 
+    ctx.translate(p.x,p.y); 
+    ctx.rotate(p.rotation);
+    ctx.globalAlpha=p.opacity; 
+    ctx.fillStyle=`hsl(${p.hue},70%,78%)`;
+    ctx.beginPath(); 
+    ctx.ellipse(0,0,p.size*0.55,p.size,0,0,Math.PI*2); 
+    ctx.fill(); 
+    ctx.restore();
   });
   requestAnimationFrame(drawPetals);
 }
-resizeCanvas(); addEventListener('resize',resizeCanvas); drawPetals();
+
+resizeCanvas(); 
+addEventListener('resize',resizeCanvas); 
+drawPetals();
 
 // ══════════════════════════════════════════
-// DATABASE FUNCTIONS
+// LOGIN FUNCTIONS
 // ══════════════════════════════════════════
-async function loadPasswords() {
-  try {
-    const { data, error } = await supabase.from('passwords').select('*').eq('id', 'main').single();
-    if (error) throw error;
-    if (data) {
-      currentPasswords = { 
-        admin: data.admin_password, 
-        viewer: data.viewer_password,
-        adminEmail: data.admin_email || ADMIN_EMAIL
-      };
+function switchTab(role) {
+  currentTab = role;
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>
+    b.classList.toggle('active',(role==='admin'&&i===0)||(role==='viewer'&&i===1)));
+  document.getElementById('login-error').textContent='';
+  document.getElementById('forgot-link').style.display = role==='admin' ? 'block' : 'none';
+}
+
+async function doLogin() {
+  const pw = document.getElementById('pw-input').value.trim();
+  const err = document.getElementById('login-error');
+  const btnText = document.getElementById('login-btn-text');
+  const spinner = document.getElementById('login-spinner');
+
+  // Check if database is ready
+  if (!window.Database) {
+    err.textContent = "Database not ready. Please wait... ♡";
+    return;
+  }
+
+  btnText.style.display = 'none';
+  spinner.style.display = 'inline-block';
+
+  await new Promise(r => setTimeout(r, 300));
+
+  if(currentTab==='admin' && pw===window.Database.getCurrentPasswords().admin) { 
+    console.log('Admin login successful');
+    enterSite('admin'); 
+    return; 
+  }
+  if(currentTab==='viewer' && pw===window.Database.getCurrentPasswords().viewer) { 
+    console.log('Viewer login successful');
+    enterSite('viewer'); 
+    return; 
+  }
+
+  btnText.style.display = 'inline';
+  spinner.style.display = 'none';
+  err.textContent = "Hmm, that doesn't seem right ♡";
+  document.getElementById('pw-input').value='';
+}
+
+function enterSite(role) {
+  const ls = document.getElementById('login-screen');
+  ls.style.opacity='0'; 
+  ls.style.transition='opacity 0.6s';
+  setTimeout(async ()=>{
+    ls.style.display='none';
+    const ms = document.getElementById('main-site');
+    ms.style.display='block';
+    document.getElementById('role-badge').textContent = role==='admin'?'✦ admin':'♡ viewer';
+    if(role==='admin'){
+      document.getElementById('admin-panel').style.display='block';
+      ms.classList.add('admin-mode');
+      document.getElementById('hero-subtitle-text').textContent = HERO_SUBTITLE_ADMIN;
+    } else {
+      showBanner(LOVE_NOTE_FOR_HER);
     }
-  } catch (e) {
-    console.error('Error loading passwords:', e);
-  }
-}
-
-async function loadPhotos() {
-  try {
-    const { data, error } = await supabase.from('photos').select('*').order('created_at', { ascending: false });
-    if (error) throw error;
-    photos = data || [];
-    renderGallery();
-  } catch (e) {
-    console.error('Error loading photos:', e);
-  }
-}
-
-async function addPhotoToDB(photo) {
-  try {
-    const { error } = await supabase.from('photos').insert([photo]);
-    if (error) throw error;
-    await loadPhotos();
-  } catch (e) {
-    console.error('Error adding photo:', e);
-    alert('Failed to upload photo. Please try again.');
-  }
-}
-
-async function deletePhotoFromDB(id) {
-  try {
-    const { error } = await supabase.from('photos').delete().eq('id', id);
-    if (error) throw error;
-    await loadPhotos();
-  } catch (e) {
-    console.error('Error deleting photo:', e);
-  }
-}
-
-async function updatePasswordsInDB(adminPw, viewerPw) {
-  try {
-    const updates = {};
-    if (adminPw) updates.admin_password = adminPw;
-    if (viewerPw) updates.viewer_password = viewerPw;
-    updates.updated_at = new Date().toISOString();
-
-    const { error } = await supabase.from('passwords').update(updates).eq('id', 'main');
-    if (error) throw error;
-    await loadPasswords();
-    return true;
-  } catch (e) {
-    console.error('Error updating passwords:', e);
-    return false;
-  }
-}
-
-(async () => {
-  await loadPasswords();
-  await loadPhotos();
-})();
-
-// ══════════════════════════════════════════
-// EMAIL FUNCTIONS
-// ══════════════════════════════════════════
-async function sendEmailWithCode(email, code) {
-  if (EMAIL_SERVICE === 'resend') {
-    try {
-      const response = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${RESEND_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          from: FROM_EMAIL,
-          to: [email],
-          subject: 'Password Reset Code - For You ♡',
-          html: `
-            <div style="font-family: Georgia, serif; max-width: 500px; margin: 0 auto; padding: 40px; background: #fdf6f0; border-radius: 16px;">
-              <h1 style="color: #c9506a; font-size: 28px; margin-bottom: 16px; text-align: center;">Password Reset ♡</h1>
-              <p style="color: #2c1a1f; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">Your password reset code is:</p>
-              <div style="background: white; border: 2px solid #c9506a; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 24px;">
-                <span style="font-size: 32px; letter-spacing: 8px; font-weight: bold; color: #c9506a;">${code}</span>
-              </div>
-              <p style="color: #9a7b82; font-size: 14px; line-height: 1.5;">This code expires in 15 minutes. If you didn't request this, please ignore this email.</p>
-            </div>
-          `
-        })
-      });
-      return response.ok;
-    } catch (e) {
-      console.error('Resend error:', e);
-      return false;
-    }
-  } else if (EMAIL_SERVICE === 'emailjs') {
-    try {
-      const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          service_id: EMAILJS_SERVICE_ID,
-          template_id: EMAILJS_TEMPLATE_ID,
-          user_id: EMAILJS_PUBLIC_KEY,
-          template_params: {
-            to_email: email,
-            code: code
+    setupDragDrop();
+    
+    // Wait for database to be ready and photos to load, then render gallery
+    console.log('🎨 Waiting for database and photos to be ready...');
+    setTimeout(() => {
+      if (window.Database && window.Database.getPhotos().length > 0) {
+        console.log('✅ Database and photos ready, rendering gallery...');
+        renderGallery();
+      } else {
+        console.log('⏳ Still waiting for photos...');
+        setTimeout(() => {
+          if (window.Database && window.Database.getPhotos().length > 0) {
+            console.log('✅ Photos ready now, rendering gallery...');
+            renderGallery();
+          } else {
+            console.log('⏳ Still waiting for photos...');
           }
-        })
-      });
-      return response.ok;
-    } catch (e) {
-      console.error('EmailJS error:', e);
-      return false;
-    }
-  }
-  return false;
+        }, 500);
+      }
+    }, 500); // Give database time to initialize and load photos
+  },600);
 }
 
 // ══════════════════════════════════════════
-// PASSWORD RESET FLOW
+// PASSWORD RESET FUNCTIONS
 // ══════════════════════════════════════════
 function openResetModal() {
   document.getElementById('reset-modal').classList.add('open');
-  const emailVal = (currentPasswords && currentPasswords.adminEmail) ? currentPasswords.adminEmail : '';
-  document.getElementById('reset-email').value = emailVal !== ADMIN_EMAIL ? emailVal : '';
+  const currentPasswords = window.Database.getCurrentPasswords();
+  document.getElementById('reset-email').value = currentPasswords.adminEmail || '';
 }
 
 function closeResetModal() {
   document.getElementById('reset-modal').classList.remove('open');
-  // Reset to step 1
   document.getElementById('reset-step-1').style.display = 'block';
   document.getElementById('reset-step-2').style.display = 'none';
   document.getElementById('reset-step-3').style.display = 'none';
@@ -942,12 +972,7 @@ async function sendResetCode() {
   
   msg.textContent = ''; msg.className = 'reset-message';
   
-  if (!email) {
-    msg.textContent = 'Please enter your email ♡';
-    msg.classList.add('error');
-    return;
-  }
-  if (!email.includes('@')) {
+  if (!email || !email.includes('@')) {
     msg.textContent = 'Please enter a valid email ♡';
     msg.classList.add('error');
     return;
@@ -956,31 +981,9 @@ async function sendResetCode() {
   btnText.style.display = 'none';
   spinner.style.display = 'inline-block';
   
-  // Generate 6-digit code
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
-  const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString(); // 15 min
-  
   try {
-    // Save code to database
-    const { data, error } = await supabase.from('reset_codes').insert([{
-      email: email,
-      code: code,
-      expires_at: expiresAt,
-      used: false
-    }]).select().single();
+    resetCodeData = await window.Database.sendResetCode(email);
     
-    if (error) throw error;
-    
-    // Send email
-    const sent = await sendEmailWithCode(email, code);
-    
-    if (!sent) {
-      throw new Error('Failed to send email');
-    }
-    
-    resetCodeData = data;
-    
-    // Move to step 2
     document.getElementById('reset-step-1').style.display = 'none';
     document.getElementById('reset-step-2').style.display = 'block';
     document.getElementById('step-1').classList.remove('active');
@@ -993,7 +996,6 @@ async function sendResetCode() {
     msg.classList.add('success');
     
   } catch (e) {
-    console.error('Reset error:', e);
     msg.textContent = 'Failed to send code. Please try again ♡';
     msg.classList.add('error');
   } finally {
@@ -1015,44 +1017,13 @@ async function verifyCode() {
     msg.classList.add('error');
     return;
   }
-
-  if (!resetCodeData || !resetCodeData.id) {
-    msg.textContent = 'Session expired. Please request a new code ♡';
-    msg.classList.add('error');
-    return;
-  }
   
   btnText.style.display = 'none';
   spinner.style.display = 'inline-block';
   
   try {
-    // Check code in database
-    const { data, error } = await supabase
-      .from('reset_codes')
-      .select('*')
-      .eq('id', resetCodeData.id)
-      .eq('code', code)
-      .eq('used', false)
-      .single();
+    await window.Database.verifyResetCode(resetCodeData.id, code);
     
-    if (error || !data) {
-      msg.textContent = 'Invalid code. Please try again ♡';
-      msg.classList.add('error');
-      btnText.style.display = 'inline';
-      spinner.style.display = 'none';
-      return;
-    }
-    
-    // Check expiry
-    if (new Date(data.expires_at) < new Date()) {
-      msg.textContent = 'Code expired. Please request a new one ♡';
-      msg.classList.add('error');
-      btnText.style.display = 'inline';
-      spinner.style.display = 'none';
-      return;
-    }
-    
-    // Move to step 3
     document.getElementById('reset-step-2').style.display = 'none';
     document.getElementById('reset-step-3').style.display = 'block';
     document.getElementById('step-2').classList.remove('active');
@@ -1062,8 +1033,7 @@ async function verifyCode() {
     document.getElementById('reset-subtitle').textContent = 'Choose a strong password';
     
   } catch (e) {
-    console.error('Verify error:', e);
-    msg.textContent = 'Something went wrong. Please try again ♡';
+    msg.textContent = 'Invalid or expired code. Please try again ♡';
     msg.classList.add('error');
   } finally {
     btnText.style.display = 'inline';
@@ -1080,18 +1050,8 @@ async function updatePassword() {
   
   msg.textContent = ''; msg.className = 'reset-message';
   
-  if (!newPw || !confirmPw) {
-    msg.textContent = 'Please fill in both fields ♡';
-    msg.classList.add('error');
-    return;
-  }
-  if (newPw.length < 4) {
-    msg.textContent = 'Password must be at least 4 characters ♡';
-    msg.classList.add('error');
-    return;
-  }
-  if (newPw !== confirmPw) {
-    msg.textContent = 'Passwords don\'t match ♡';
+  if (!newPw || !confirmPw || newPw.length < 4 || newPw !== confirmPw) {
+    msg.textContent = 'Please enter matching passwords (min 4 chars) ♡';
     msg.classList.add('error');
     return;
   }
@@ -1100,21 +1060,8 @@ async function updatePassword() {
   spinner.style.display = 'inline-block';
   
   try {
-    // Update password in database
-    const { error: pwError } = await supabase
-      .from('passwords')
-      .update({ admin_password: newPw, updated_at: new Date().toISOString() })
-      .eq('id', 'main');
-    
-    if (pwError) throw pwError;
-    
-    // Mark code as used
-    await supabase
-      .from('reset_codes')
-      .update({ used: true })
-      .eq('id', resetCodeData.id);
-    
-    await loadPasswords();
+    await window.Database.updatePassword(newPw);
+    await window.Database.markCodeAsUsed(resetCodeData.id);
     
     document.getElementById('step-3').classList.remove('active');
     document.getElementById('step-3').classList.add('done');
@@ -1122,12 +1069,9 @@ async function updatePassword() {
     msg.textContent = '✓ Password updated successfully! You can now login ♡';
     msg.classList.add('success');
     
-    setTimeout(() => {
-      closeResetModal();
-    }, 2000);
+    setTimeout(() => closeResetModal(), 2000);
     
   } catch (e) {
-    console.error('Update error:', e);
     msg.textContent = 'Failed to update password. Please try again ♡';
     msg.classList.add('error');
   } finally {
@@ -1137,64 +1081,7 @@ async function updatePassword() {
 }
 
 // ══════════════════════════════════════════
-// LOGIN
-// ══════════════════════════════════════════
-function switchTab(role) {
-  currentTab = role;
-  document.querySelectorAll('.tab-btn').forEach((b,i)=>
-    b.classList.toggle('active',(role==='admin'&&i===0)||(role==='viewer'&&i===1)));
-  document.getElementById('login-error').textContent='';
-  // Show forgot link only for admin
-  document.getElementById('forgot-link').style.display = role==='admin' ? 'block' : 'none';
-}
-
-async function doLogin() {
-  const pw  = document.getElementById('pw-input').value.trim();
-  const err = document.getElementById('login-error');
-  const btnText = document.getElementById('login-btn-text');
-  const spinner = document.getElementById('login-spinner');
-
-  btnText.style.display = 'none';
-  spinner.style.display = 'inline-block';
-
-  await new Promise(r => setTimeout(r, 300));
-
-  if(currentTab==='admin'  && pw===currentPasswords.admin)  { 
-    enterSite('admin'); 
-    return; 
-  }
-  if(currentTab==='viewer' && pw===currentPasswords.viewer) { 
-    enterSite('viewer'); 
-    return; 
-  }
-
-  btnText.style.display = 'inline';
-  spinner.style.display = 'none';
-  err.textContent = "Hmm, that doesn't seem right ♡";
-  document.getElementById('pw-input').value='';
-}
-
-function enterSite(role) {
-  const ls = document.getElementById('login-screen');
-  ls.style.opacity='0'; ls.style.transition='opacity 0.6s';
-  setTimeout(()=>{
-    ls.style.display='none';
-    const ms = document.getElementById('main-site');
-    ms.style.display='block';
-    document.getElementById('role-badge').textContent = role==='admin'?'✦ admin':'♡ viewer';
-    if(role==='admin'){
-      document.getElementById('admin-panel').style.display='block';
-      ms.classList.add('admin-mode');
-      document.getElementById('hero-subtitle-text').textContent=HERO_SUBTITLE_ADMIN;
-    } else {
-      showBanner(LOVE_NOTE_FOR_HER);
-    }
-    setupDragDrop();
-  },600);
-}
-
-// ══════════════════════════════════════════
-// PASSWORD MANAGER (same as before)
+// PASSWORD MANAGER
 // ══════════════════════════════════════════
 function togglePwManager() {
   const body = document.getElementById('pw-manager-body');
@@ -1209,9 +1096,8 @@ function toggleEye(inputId, btn) {
   else { inp.type='password'; btn.textContent='👁'; }
 }
 
-let adminRevealed  = false;
-let viewerRevealed = false;
 function revealCurrent(who) {
+  const currentPasswords = window.Database.getCurrentPasswords();
   if(who==='admin'){
     adminRevealed = !adminRevealed;
     document.getElementById('show-admin-pw').textContent = adminRevealed ? currentPasswords.admin : '••••••••';
@@ -1222,26 +1108,22 @@ function revealCurrent(who) {
 }
 
 async function savePasswords() {
-  const newAdmin  = document.getElementById('new-admin-pw').value.trim();
+  const newAdmin = document.getElementById('new-admin-pw').value.trim();
   const newViewer = document.getElementById('new-viewer-pw').value.trim();
-  const success   = document.getElementById('pw-success');
-  const error     = document.getElementById('pw-error');
+  const success = document.getElementById('pw-success');
+  const error = document.getElementById('pw-error');
   success.textContent=''; error.textContent='';
 
   if(!newAdmin && !newViewer) {
     error.textContent = 'Please enter at least one new password ♡';
     return;
   }
-  if(newAdmin && newAdmin.length < 4) {
-    error.textContent = 'Admin password must be at least 4 characters ♡';
-    return;
-  }
-  if(newViewer && newViewer.length < 4) {
-    error.textContent = 'Her password must be at least 4 characters ♡';
+  if((newAdmin && newAdmin.length < 4) || (newViewer && newViewer.length < 4)) {
+    error.textContent = 'Passwords must be at least 4 characters ♡';
     return;
   }
 
-  const updated = await updatePasswordsInDB(newAdmin, newViewer);
+  const updated = await window.Database.updatePasswordsInDB(newAdmin, newViewer);
   if(!updated) {
     error.textContent = 'Failed to update passwords. Please try again ♡';
     return;
@@ -1265,10 +1147,11 @@ async function savePasswords() {
 }
 
 // ══════════════════════════════════════════
-// DRAG & DROP, PHOTOS, GALLERY (same as before)
+// PHOTO MANAGEMENT
 // ══════════════════════════════════════════
 function setupDragDrop() {
-  const dz=document.getElementById('drop-zone'); if(!dz)return;
+  const dz = document.getElementById('drop-zone'); 
+  if(!dz) return;
   dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('dragover');});
   dz.addEventListener('dragleave',()=>dz.classList.remove('dragover'));
   dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dragover');handleFiles(e.dataTransfer.files);});
@@ -1278,34 +1161,87 @@ function handleFiles(fileList) {
   const cap = document.getElementById('caption-input').value.trim();
   Array.from(fileList).forEach(file=>{
     if(!file.type.startsWith('image/'))return;
-    const reader=new FileReader();
-    reader.onload=async (e)=>{
+    
+    // Compress image before uploading
+    compressImage(file, 0.8, (compressedSrc) => {
       const photo = {
         id: Date.now() + '-' + Math.random().toString(36).substr(2,9),
-        src: e.target.result,
-        caption: cap||'',
+        src: compressedSrc,
+        caption: cap || '',
         date: new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})
       };
-      await addPhotoToDB(photo);
-    };
-    reader.readAsDataURL(file);
+      
+      window.Database.addPhotoToDB(photo);
+    });
   });
   document.getElementById('caption-input').value='';
   document.getElementById('file-input').value='';
 }
 
+// Image compression function
+function compressImage(file, quality, callback) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  const img = new Image();
+  
+  img.onload = function() {
+    // Calculate new dimensions (max 1200px width/height)
+    let width = img.width;
+    let height = img.height;
+    const maxSize = 1200;
+    
+    if (width > height) {
+      if (width > maxSize) {
+        height = (height * maxSize) / width;
+        width = maxSize;
+      }
+    } else {
+      if (height > maxSize) {
+        width = (width * maxSize) / height;
+        height = maxSize;
+      }
+    }
+    
+    canvas.width = width;
+    canvas.height = height;
+    
+    // Draw and compress
+    ctx.drawImage(img, 0, 0, width, height);
+    callback(canvas.toDataURL('image/jpeg', quality));
+  };
+  
+  img.src = URL.createObjectURL(file);
+}
+
 async function deletePhoto(id) {
-  await deletePhotoFromDB(id);
+  await window.Database.deletePhotoFromDB(id);
+  renderGallery(); // Refresh gallery after deleting
 }
 
 function renderGallery() {
-  const grid  = document.getElementById('gallery-grid');
+  console.log('');
+  console.log(' Rendering gallery...');
+  const grid = document.getElementById('gallery-grid');
   const empty = document.getElementById('empty-state');
   const isAdm = document.getElementById('main-site').classList.contains('admin-mode');
+  const photos = window.Database.getPhotos();
+  
+  console.log(' Photos to render:', photos.length, photos);
+  console.log(' Admin mode:', isAdm);
+  console.log(' Main site classes:', document.getElementById('main-site').className);
+  
   grid.innerHTML='';
-  empty.style.display = photos.length===0?'block':'none';
-  photos.forEach((p,idx)=>{
-    const card=document.createElement('div');
+  empty.style.display = photos.length===0 ? 'block' : 'none';
+  
+  if (photos.length === 0) {
+    console.log(' No photos to display');
+    return;
+  }
+  
+  photos.forEach((p, idx) => {
+    console.log(` Rendering photo ${idx}:`, p);
+    console.log(` Admin mode for photo ${idx}:`, isAdm);
+    const card = document.createElement('div');
     card.className='photo-card';
     card.style.animationDelay=(idx*0.06)+'s';
     card.innerHTML=`
@@ -1314,33 +1250,75 @@ function renderGallery() {
         ${p.caption?`<p class="photo-caption">${p.caption}</p>`:''}
         ${p.date?`<p class="photo-date">${p.date}</p>`:''}
       </div>`:''}
-      ${isAdm?`<div class="photo-card-actions">
-        <button class="del-btn" onclick="event.stopPropagation();deletePhoto('${p.id}')">Remove</button>
+      ${isAdm?`<div class="photo-card-actions" style="display: flex !important; position: absolute; top: 10px; right: 10px; gap: 6px; z-index: 10;">
+        <button onclick="event.stopPropagation();deletePhoto('${p.id}')" style="background: #c9506a !important; color: #fff !important; border: none !important; border-radius: 8px !important; padding: 8px 12px !important; font-size: 0.8rem !important; cursor: pointer !important; font-weight: bold !important; box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;">Remove</button>
       </div>`:''}`;
     grid.appendChild(card);
   });
-  const obs=new IntersectionObserver(entries=>entries.forEach(e=>{
+  
+  // Add visibility animation
+  const obs = new IntersectionObserver(entries => entries.forEach(e => {
     if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target);}
-  }),{threshold:0.1});
-  grid.querySelectorAll('.photo-card').forEach(c=>obs.observe(c));
+  }), {threshold:0.1});
+  grid.querySelectorAll('.photo-card').forEach(c => obs.observe(c));
+  
+  console.log('✅ Gallery rendered with', photos.length, 'photos');
 }
 
-function openLightbox(idx) { lbIndex=idx; updateLb(); document.getElementById('lightbox').classList.add('open'); document.body.style.overflow='hidden'; }
-function closeLightbox(e) { if(e&&e.target!==document.getElementById('lightbox'))return; document.getElementById('lightbox').classList.remove('open'); document.body.style.overflow=''; lbIndex=0; }
-function updateLb() { const p=photos[lbIndex]; document.getElementById('lb-img').src=p.src; document.getElementById('lb-caption').textContent=p.caption||''; }
-function lbNavigate(d) { lbIndex=(lbIndex+d+photos.length)%photos.length; updateLb(); }
-document.addEventListener('keydown',e=>{
-  if(!document.getElementById('lightbox').classList.contains('open'))return;
-  if(e.key==='ArrowLeft'){e.preventDefault();lbNavigate(-1);}
-  if(e.key==='ArrowRight'){e.preventDefault();lbNavigate(1);}
-  if(e.key==='Escape'){document.getElementById('lightbox').classList.remove('open');document.body.style.overflow='';}
+// Make renderGallery globally available
+window.renderGallery = renderGallery;
+
+// ══════════════════════════════════════════
+// LIGHTBOX
+// ══════════════════════════════════════════
+function openLightbox(idx) { 
+  lbIndex = idx; 
+  updateLb(); 
+  document.getElementById('lightbox').classList.add('open'); 
+  document.body.style.overflow = 'hidden'; 
+}
+
+function closeLightbox(e) { 
+  if(e && e.target!==document.getElementById('lightbox')) return; 
+  document.getElementById('lightbox').classList.remove('open'); 
+  document.body.style.overflow = ''; 
+}
+
+function updateLb() { 
+  const photos = window.Database.getPhotos();
+  const p = photos[lbIndex]; 
+  document.getElementById('lb-img').src = p.src; 
+  document.getElementById('lb-caption').textContent = p.caption || ''; 
+}
+
+function lbNavigate(d) { 
+  const photos = window.Database.getPhotos();
+  lbIndex = (lbIndex + d + photos.length) % photos.length; 
+  updateLb(); 
+}
+
+document.addEventListener('keydown', e => {
+  if(!document.getElementById('lightbox').classList.contains('open')) return;
+  if(e.key==='ArrowLeft') lbNavigate(-1);
+  if(e.key==='ArrowRight') lbNavigate(1);
+  if(e.key==='Escape') closeLightbox();
 });
 
+// ══════════════════════════════════════════
+// UTILITY FUNCTIONS
+// ══════════════════════════════════════════
 function showBanner(msg) {
-  const b=document.getElementById('message-banner');
-  b.textContent=msg; b.style.display='block';
-  setTimeout(()=>{b.style.transition='opacity 0.8s';b.style.opacity='0';
-    setTimeout(()=>{b.style.display='none';b.style.opacity='1';},800);},5000);
+  const b = document.getElementById('message-banner');
+  b.textContent = msg; 
+  b.style.display = 'block';
+  setTimeout(() => {
+    b.style.transition = 'opacity 0.8s';
+    b.style.opacity = '0';
+    setTimeout(() => {
+      b.style.display = 'none'; 
+      b.style.opacity = '1';
+    }, 800);
+  }, 5000);
 }
 
 // Show forgot link for admin on page load
